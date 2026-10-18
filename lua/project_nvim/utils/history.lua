@@ -1,4 +1,4 @@
-local path = require("project_nvim.utils.path")
+local path = require('project_nvim.utils.path')
 local uv = vim.loop
 local M = {}
 local is_windows = vim.fn.has('win32') or vim.fn.has('wsl')
@@ -20,20 +20,20 @@ end
 
 local function dir_exists(dir)
   local stat = uv.fs_stat(dir)
-  if stat ~= nil and stat.type == "directory" then
+  if stat ~= nil and stat.type == 'directory' then
     return true
   end
   return false
 end
 
 local function normalise_path(path_to_normalise)
-    local normalised_path = path_to_normalise:gsub("\\", "/"):gsub("//", "/")
+  local normalised_path = path_to_normalise:gsub('\\', '/'):gsub('//', '/')
 
-    if is_windows then
-       normalised_path = normalised_path:sub(1,1):lower()..normalised_path:sub(2)
-    end
+  if is_windows then
+    normalised_path = normalised_path:sub(1, 1):lower() .. normalised_path:sub(2)
+  end
 
-    return normalised_path
+  return normalised_path
 end
 
 local function delete_duplicates(tbl)
@@ -70,7 +70,7 @@ end
 local function deserialize_history(history_data)
   -- split data to table
   local projects = {}
-  for s in history_data:gmatch("[^\r\n]+") do
+  for s in history_data:gmatch('[^\r\n]+') do
     if not path.is_excluded(s) and dir_exists(s) then
       table.insert(projects, s)
     end
@@ -93,7 +93,7 @@ local function setup_watch()
       if err ~= nil then
         return
       end
-      if events["change"] then
+      if events['change'] then
         M.recent_projects = nil
         M.read_projects_from_history()
       end
@@ -102,7 +102,7 @@ local function setup_watch()
 end
 
 function M.read_projects_from_history()
-  open_history("r", function(_, fd)
+  open_history('r', function(_, fd)
     setup_watch()
     if fd ~= nil then
       uv.fs_fstat(fd, function(_, stat)
@@ -145,9 +145,9 @@ end
 function M.write_projects_to_history()
   -- Unlike read projects, write projects is synchronous
   -- because it runs when vim ends
-  local mode = "w"
+  local mode = 'w'
   if M.recent_projects == nil then
-    mode = "a"
+    mode = 'a'
   end
   local file = open_history(mode)
 
@@ -164,9 +164,9 @@ function M.write_projects_to_history()
     end
 
     -- Transform table to string
-    local out = ""
+    local out = ''
     for _, v in ipairs(tbl_out) do
-      out = out .. v .. "\n"
+      out = out .. v .. '\n'
     end
 
     -- Write string out to file and close

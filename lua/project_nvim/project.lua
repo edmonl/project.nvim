@@ -1,7 +1,7 @@
-local config = require("project_nvim.config")
-local history = require("project_nvim.utils.history")
-local glob = require("project_nvim.utils.globtopattern")
-local path = require("project_nvim.utils.path")
+local config = require('project_nvim.config')
+local history = require('project_nvim.utils.history')
+local glob = require('project_nvim.utils.globtopattern')
+local path = require('project_nvim.utils.path')
 local uv = vim.loop
 local M = {}
 
@@ -12,7 +12,7 @@ M.last_project = nil
 function M.find_lsp_root()
   -- Get lsp client for current buffer
   -- Returns nil or string
-  local buf_ft = vim.api.nvim_buf_get_option(0, "filetype")
+  local buf_ft = vim.api.nvim_buf_get_option(0, 'filetype')
   local clients = vim.lsp.buf_get_clients()
   if next(clients) == nil then
     return nil
@@ -31,18 +31,18 @@ function M.find_lsp_root()
 end
 
 function M.find_pattern_root()
-  local search_dir = vim.fn.expand("%:p:h", true)
-  if vim.fn.has("win32") > 0 then
-    search_dir = search_dir:gsub("\\", "/")
+  local search_dir = vim.fn.expand('%:p:h', true)
+  if vim.fn.has('win32') > 0 then
+    search_dir = search_dir:gsub('\\', '/')
   end
 
-  local last_dir_cache = ""
+  local last_dir_cache = ''
   local curr_dir_cache = {}
 
   local function get_parent(path)
-    path = path:match("^(.*)/")
-    if path == "" then
-      path = "/"
+    path = path:match('^(.*)/')
+    if path == '' then
+      path = '/'
     end
     return path
   end
@@ -67,7 +67,7 @@ function M.find_pattern_root()
   end
 
   local function is(dir, identifier)
-    dir = dir:match(".*/(.*)")
+    dir = dir:match('.*/(.*)')
     return dir == identifier
   end
 
@@ -105,11 +105,11 @@ function M.find_pattern_root()
 
   local function match(dir, pattern)
     local first_char = pattern:sub(1, 1)
-    if first_char == "=" then
+    if first_char == '=' then
       return is(dir, pattern:sub(2))
-    elseif first_char == "^" then
+    elseif first_char == '^' then
       return sub(dir, pattern:sub(2))
-    elseif first_char == ">" then
+    elseif first_char == '>' then
       return child(dir, pattern:sub(2))
     else
       return has(dir, pattern)
@@ -120,7 +120,7 @@ function M.find_pattern_root()
   while true do
     for _, pattern in ipairs(config.options.patterns) do
       local exclude = false
-      if pattern:sub(1, 1) == "!" then
+      if pattern:sub(1, 1) == '!' then
         exclude = true
         pattern = pattern:sub(2)
       end
@@ -128,7 +128,7 @@ function M.find_pattern_root()
         if exclude then
           break
         else
-          return search_dir, "pattern " .. pattern
+          return search_dir, 'pattern ' .. pattern
         end
       end
     end
@@ -187,7 +187,7 @@ function M.set_pwd(dir, method)
       end
 
       if config.options.silent_chdir == false then
-        vim.notify("Set CWD to " .. dir .. " using " .. method)
+        vim.notify('Set CWD to ' .. dir .. ' using ' .. method)
       end
     end
     return true
@@ -199,12 +199,12 @@ end
 function M.get_project_root()
   -- returns project root, as well as method
   for _, detection_method in ipairs(config.options.detection_methods) do
-    if detection_method == "lsp" then
+    if detection_method == 'lsp' then
       local root, lsp_name = M.find_lsp_root()
       if root ~= nil then
-        return root, '"' .. lsp_name .. '"' .. " lsp"
+        return root, '"' .. lsp_name .. '"' .. ' lsp'
       end
-    elseif detection_method == "pattern" then
+    elseif detection_method == 'pattern' then
       local root, method = M.find_pattern_root()
       if root ~= nil then
         return root, method
@@ -214,9 +214,9 @@ function M.get_project_root()
 end
 
 function M.is_file()
-  local buf_type = vim.api.nvim_buf_get_option(0, "buftype")
+  local buf_type = vim.api.nvim_buf_get_option(0, 'buftype')
 
-  local whitelisted_buf_type = { "", "acwrite" }
+  local whitelisted_buf_type = { '', 'acwrite' }
   local is_in_whitelist = false
   for _, wtype in ipairs(whitelisted_buf_type) do
     if buf_type == wtype then
@@ -240,7 +240,7 @@ function M.on_buf_enter()
     return
   end
 
-  local current_dir = vim.fn.expand("%:p:h", true)
+  local current_dir = vim.fn.expand('%:p:h', true)
   if not path.exists(current_dir) or path.is_excluded(current_dir) then
     return
   end
@@ -250,7 +250,7 @@ function M.on_buf_enter()
 end
 
 function M.add_project_manually()
-  local current_dir = vim.fn.expand("%:p:h", true)
+  local current_dir = vim.fn.expand('%:p:h', true)
   M.set_pwd(current_dir, 'manual')
 end
 
@@ -259,7 +259,7 @@ function M.init()
   if not config.options.manual_mode then
     autocmds[#autocmds + 1] = 'autocmd VimEnter,BufEnter * ++nested lua require("project_nvim.project").on_buf_enter()'
 
-    if vim.tbl_contains(config.options.detection_methods, "lsp") then
+    if vim.tbl_contains(config.options.detection_methods, 'lsp') then
       M.attach_to_lsp()
     end
   end
@@ -278,7 +278,7 @@ function M.init()
   for _, value in ipairs(autocmds) do
     vim.cmd(value)
   end
-  vim.cmd("augroup END")
+  vim.cmd('augroup END')
 
   history.read_projects_from_history()
 end

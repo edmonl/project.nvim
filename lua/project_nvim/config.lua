@@ -10,11 +10,11 @@ M.defaults = {
   -- lsp, while **"pattern"** uses vim-rooter like glob pattern matching. Here
   -- order matters: if one is not detected, the other is used as fallback. You
   -- can also delete or rearangne the detection methods.
-  detection_methods = { "lsp", "pattern" },
+  detection_methods = { 'lsp', 'pattern' },
 
   -- All the patterns used to detect root dir, when **"pattern"** is in
   -- detection_methods
-  patterns = { ".git", "_darcs", ".hg", ".bzr", ".svn", "Makefile", "package.json" },
+  patterns = { '.git', '_darcs', '.hg', '.bzr', '.svn', 'Makefile', 'package.json' },
 
   -- Table of lsp clients to ignore by name
   -- eg: { "efm", ... }
@@ -39,28 +39,28 @@ M.defaults = {
 
   -- Path where project.nvim will store the project history for use in
   -- telescope
-  datapath = vim.fn.stdpath("data"),
+  datapath = vim.fn.stdpath('data'),
 }
 
 ---@type ProjectOptions
 M.options = {}
 
 M.setup = function(options)
-  M.options = vim.tbl_deep_extend("force", M.defaults, options or {})
+  M.options = vim.tbl_deep_extend('force', M.defaults, options or {})
 
-  local glob = require("project_nvim.utils.globtopattern")
-  local home = vim.fn.expand("~")
+  local glob = require('project_nvim.utils.globtopattern')
+  local home = vim.fn.expand('~')
   M.options.exclude_dirs = vim.tbl_map(function(pattern)
-    if vim.startswith(pattern, "~/") then
-      pattern = home .. "/" .. pattern:sub(3, #pattern)
+    if vim.startswith(pattern, '~/') then
+      pattern = home .. '/' .. pattern:sub(3, #pattern)
     end
     return glob.globtopattern(pattern)
   end, M.options.exclude_dirs)
 
   vim.opt.autochdir = false -- implicitly unset autochdir
 
-  require("project_nvim.utils.path").init()
-  require("project_nvim.project").init()
+  require('project_nvim.utils.path').init()
+  require('project_nvim.project').init()
 end
 
 return M
