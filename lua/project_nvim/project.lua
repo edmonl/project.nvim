@@ -171,19 +171,21 @@ end
 
 function M.set_pwd(dir, method)
   if dir ~= nil then
+    local scope_chdir = config.options.scope_chdir
+    if scope_chdir ~= 'global' and scope_chdir ~= 'tab' and scope_chdir ~= 'win' then
+      return false
+    end
+
     M.last_project = dir
     table.insert(history.session_projects, dir)
 
     if vim.fn.getcwd() ~= dir then
-      local scope_chdir = config.options.scope_chdir
       if scope_chdir == 'global' then
         vim.api.nvim_set_current_dir(dir)
       elseif scope_chdir == 'tab' then
-        vim.cmd('tcd ' .. dir)
-      elseif scope_chdir == 'win' then
-        vim.cmd('lcd ' .. dir)
+        vim.cmd('tcd ' .. vim.fn.fnameescape(dir))
       else
-        return
+        vim.cmd('lcd ' .. vim.fn.fnameescape(dir))
       end
 
       if config.options.silent_chdir == false then
