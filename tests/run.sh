@@ -50,7 +50,7 @@ for scope in global tab win; do
 done
 printf '%s\n' 'ok - restores deleted projects on a visit or explicit addition'
 
-for test_case in delete_entries delete_during_load save_before_load; do
+for test_case in delete_entries delete_during_load save_before_load load_filtering collect_projects serialization; do
   history_dir="$test_root/history-$test_case"
   mkdir "$history_dir"
   run_nvim "$test_case" global "$history_dir" tests/history_spec.lua
