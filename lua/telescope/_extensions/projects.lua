@@ -18,6 +18,26 @@ local history = require('project_nvim.utils.history')
 local project = require('project_nvim.project')
 local config = require('project_nvim.config')
 
+local default_mappings = {
+  n = {
+    find_project_files = 'f',
+    browse_project_files = 'b',
+    delete_project = 'd',
+    search_in_project_files = 's',
+    recent_project_files = 'r',
+    change_working_directory = 'w',
+  },
+  i = {
+    find_project_files = '<c-f>',
+    browse_project_files = '<c-b>',
+    delete_project = '<c-d>',
+    search_in_project_files = '<c-s>',
+    recent_project_files = '<c-r>',
+    change_working_directory = '<c-w>',
+  },
+}
+local project_mappings = default_mappings
+
 ----------
 -- Actions
 ----------
@@ -146,6 +166,15 @@ local function delete_project(prompt_bufnr)
   end
 end
 
+local project_actions = {
+  find_project_files = find_project_files,
+  browse_project_files = browse_project_files,
+  delete_project = delete_project,
+  search_in_project_files = search_in_project_files,
+  recent_project_files = recent_project_files,
+  change_working_directory = change_working_directory,
+}
+
 ---Main entrypoint for Telescope.
 ---@param opts table
 local function projects(opts)
@@ -158,19 +187,14 @@ local function projects(opts)
       previewer = false,
       sorter = telescope_config.generic_sorter(opts),
       attach_mappings = function(prompt_bufnr, map)
-        map('n', 'f', find_project_files)
-        map('n', 'b', browse_project_files)
-        map('n', 'd', delete_project)
-        map('n', 's', search_in_project_files)
-        map('n', 'r', recent_project_files)
-        map('n', 'w', change_working_directory)
-
-        map('i', '<c-f>', find_project_files)
-        map('i', '<c-b>', browse_project_files)
-        map('i', '<c-d>', delete_project)
-        map('i', '<c-s>', search_in_project_files)
-        map('i', '<c-r>', recent_project_files)
-        map('i', '<c-w>', change_working_directory)
+        for mode, mappings in pairs(project_mappings) do
+          for action, key in pairs(mappings) do
+            if key then
+              local callback = assert(project_actions[action], 'Unknown project action: ' .. action)
+              map(mode, key, callback)
+            end
+          end
+        end
 
         local on_project_selected = function()
           find_project_files(prompt_bufnr)
@@ -183,6 +207,11 @@ local function projects(opts)
 end
 
 return telescope.register_extension({
+  ---Configures project shortcuts from Telescope's extensions.projects section.
+  ---@param ext_config table
+  setup = function(ext_config)
+    project_mappings = vim.tbl_deep_extend('force', default_mappings, ext_config.mappings or {})
+  end,
   exports = {
     projects = projects,
   },

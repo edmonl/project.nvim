@@ -197,6 +197,33 @@ require'telescope'.extensions.projects.projects{}
 | r           | \<c-r\>     | recent\_project\_files     |
 | w           | \<c-w\>     | change\_working\_directory |
 
+Configure shortcuts in Telescope's `extensions.projects` section before loading the extension. Unspecified shortcuts retain their defaults:
+
+```lua
+local telescope = require('telescope')
+
+telescope.setup({
+  extensions = {
+    projects = {
+      mappings = {
+        n = {
+          find_project_files = 'p',
+          delete_project = false,
+        },
+        i = {
+          find_project_files = '<c-p>',
+          delete_project = false,
+        },
+      },
+    },
+  },
+})
+
+telescope.load_extension('projects')
+```
+
+Use the action names in the table above. Changing a shortcut replaces its old project mapping. Setting it to `false` omits the project mapping; Telescope's own defaults may still apply to that key. The default selection action (`<CR>`) continues to find project files unless you map that key to another action in the corresponding mode.
+
 ## API
 
 Get a list of recent projects:

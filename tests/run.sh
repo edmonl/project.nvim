@@ -71,3 +71,10 @@ for test_case in root_selection attach_lifecycle reconfigure; do
   run_nvim "$test_case" global "$lsp_dir" tests/lsp_spec.lua
   printf 'ok - LSP: %s\n' "$test_case"
 done
+
+for test_case in default_mappings custom_mappings disabled_mappings; do
+  telescope_dir="$test_root/telescope-$test_case"
+  mkdir "$telescope_dir"
+  run_nvim "$test_case" global "$telescope_dir" tests/telescope_mappings_spec.lua
+  printf 'ok - Telescope mappings: %s\n' "$test_case"
+done
