@@ -2,7 +2,7 @@ local config = require('project_nvim.config')
 local history = require('project_nvim.utils.history')
 local glob = require('project_nvim.utils.globtopattern')
 local path = require('project_nvim.utils.path')
-local uv = vim.loop
+local uv = vim.uv
 local M = {}
 
 -- Internal states
@@ -12,7 +12,7 @@ M.last_project = nil
 function M.find_lsp_root()
   -- Get lsp client for current buffer
   -- Returns nil or string
-  local buf_ft = vim.api.nvim_buf_get_option(0, 'filetype')
+  local buf_ft = vim.bo.filetype
   local clients = vim.lsp.buf_get_clients()
   if next(clients) == nil then
     return nil
@@ -216,7 +216,7 @@ function M.get_project_root()
 end
 
 function M.is_file()
-  local buf_type = vim.api.nvim_buf_get_option(0, 'buftype')
+  local buf_type = vim.bo.buftype
 
   local whitelisted_buf_type = { '', 'acwrite' }
   local is_in_whitelist = false

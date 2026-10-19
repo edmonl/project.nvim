@@ -1,5 +1,5 @@
 local path = require('project_nvim.utils.path')
-local uv = vim.loop
+local uv = vim.uv
 local M = {}
 local is_windows = vim.fn.has('win32') or vim.fn.has('wsl')
 

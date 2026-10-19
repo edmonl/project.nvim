@@ -7,7 +7,7 @@ superior project management.
 
 ## ⚡ Requirements
 
-- Neovim >= 0.5.0
+- Neovim >= 0.12.0
 
 ## ✨ Features
 
