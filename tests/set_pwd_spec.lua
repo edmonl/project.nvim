@@ -31,6 +31,27 @@ elseif test_case == 'invalid_scope' then
   assert(vim.fn.getcwd() == original_dir)
   assert(project.last_project == nil)
   assert(vim.deep_equal(history.session_projects, {}))
+elseif test_case == 'readd_project' then
+  for _, recent_projects in ipairs({ {}, { target_dir } }) do
+    history.recent_projects = recent_projects
+    history.session_projects = { target_dir }
+    history.delete_project(target_dir)
+
+    assert(vim.deep_equal(history.session_projects, {}))
+    assert(vim.deep_equal(history.get_recent_projects(), {}))
+
+    -- A stale history result must not restore a project until it is visited.
+    history.recent_projects = { target_dir }
+    assert(vim.deep_equal(history.get_recent_projects(), {}))
+
+    assert(project.set_pwd(target_dir, 'test'))
+    assert(vim.deep_equal(history.get_recent_projects(), { target_dir }))
+  end
+
+  history.delete_project(target_dir)
+  vim.api.nvim_buf_set_name(0, target_dir .. '/file.lua')
+  project.add_project_manually()
+  assert(vim.deep_equal(history.get_recent_projects(), { target_dir }))
 else
   error('Unknown test case: ' .. test_case)
 end

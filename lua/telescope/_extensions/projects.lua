@@ -122,15 +122,22 @@ local function recent_project_files(prompt_bufnr)
 end
 
 local function delete_project(prompt_bufnr)
-  local selectedEntry = state.get_selected_entry(prompt_bufnr)
-  if selectedEntry == nil then
+  local selected_entry = state.get_selected_entry(prompt_bufnr)
+  if selected_entry == nil then
     actions.close(prompt_bufnr)
     return
   end
-  local choice = vim.fn.confirm("Delete '" .. selectedEntry.value .. "' from project list?", '&Yes\n&No', 2)
+  local choice = vim.fn.confirm(
+    "Delete '"
+      .. selected_entry.value
+      .. "' from project list?\n"
+      .. 'It may reappear when you visit one of its buffers or use :AddProject.',
+    '&Yes\n&No',
+    2
+  )
 
   if choice == 1 then
-    history.delete_project(selectedEntry)
+    history.delete_project(selected_entry.value)
 
     local finder = create_finder()
     state.get_current_picker(prompt_bufnr):refresh(finder, {

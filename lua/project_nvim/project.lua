@@ -177,7 +177,7 @@ function M.set_pwd(dir, method)
     end
 
     M.last_project = dir
-    table.insert(history.session_projects, dir)
+    history.add_project(dir)
 
     if vim.fn.getcwd() ~= dir then
       if scope_chdir == 'global' then

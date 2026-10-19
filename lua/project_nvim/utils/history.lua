@@ -6,6 +6,7 @@ local is_windows = vim.fn.has('win32') or vim.fn.has('wsl')
 M.recent_projects = nil -- projects from previous neovim sessions
 M.session_projects = {} -- projects from current neovim session
 M.has_watch_setup = false
+local deleted_projects = {}
 
 local function open_history(mode, callback)
   if callback ~= nil then -- async
@@ -36,6 +37,19 @@ local function normalise_path(path_to_normalise)
   return normalised_path
 end
 
+local function remove_project(projects, project)
+  if projects == nil then
+    return
+  end
+
+  local normalised_project = normalise_path(project)
+  for index = #projects, 1, -1 do
+    if normalise_path(projects[index]) == normalised_project then
+      table.remove(projects, index)
+    end
+  end
+end
+
 local function delete_duplicates(tbl)
   local cache_dict = {}
   for _, v in ipairs(tbl) do
@@ -59,19 +73,26 @@ local function delete_duplicates(tbl)
   return res
 end
 
+---Records a project visit and allows a previously deleted project to return.
+---@param project string
+function M.add_project(project)
+  deleted_projects[normalise_path(project)] = nil
+  table.insert(M.session_projects, project)
+end
+
+---Removes a project from history until it is visited or explicitly added again.
+---@param project string
 function M.delete_project(project)
-  for k, v in ipairs(M.recent_projects) do
-    if v == project.value then
-      M.recent_projects[k] = nil
-    end
-  end
+  deleted_projects[normalise_path(project)] = true
+  remove_project(M.recent_projects, project)
+  remove_project(M.session_projects, project)
 end
 
 local function deserialize_history(history_data)
   -- split data to table
   local projects = {}
   for s in history_data:gmatch('[^\r\n]+') do
-    if not path.is_excluded(s) and dir_exists(s) then
+    if not deleted_projects[normalise_path(s)] and not path.is_excluded(s) and dir_exists(s) then
       table.insert(projects, s)
     end
   end
@@ -79,6 +100,19 @@ local function deserialize_history(history_data)
   projects = delete_duplicates(projects)
 
   M.recent_projects = projects
+end
+
+local function read_projects_from_history_sync()
+  local file = open_history('r')
+  if file == nil then
+    M.recent_projects = {}
+    return
+  end
+
+  local stat = uv.fs_fstat(file)
+  local history_data = stat and uv.fs_read(file, stat.size, -1) or ''
+  uv.fs_close(file)
+  deserialize_history(history_data)
 end
 
 local function setup_watch()
@@ -130,7 +164,7 @@ local function sanitize_projects()
 
   local real_tbl = {}
   for _, dir in ipairs(tbl) do
-    if dir_exists(dir) then
+    if not deleted_projects[normalise_path(dir)] and dir_exists(dir) then
       table.insert(real_tbl, dir)
     end
   end
@@ -147,7 +181,11 @@ function M.write_projects_to_history()
   -- because it runs when vim ends
   local mode = 'w'
   if M.recent_projects == nil then
-    mode = 'a'
+    if next(deleted_projects) == nil then
+      mode = 'a'
+    else
+      read_projects_from_history_sync()
+    end
   end
   local file = open_history(mode)
 
