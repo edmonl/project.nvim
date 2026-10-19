@@ -24,7 +24,7 @@ run_nvim() {
       PROJECT_NVIM_TEST_DIR="$target_dir" \
       PROJECT_NVIM_TEST_SPEC="$test_spec" \
       XDG_STATE_HOME="$test_root/state-$test_case-$scope" \
-      nvim --headless -u NONE -i NONE \
+      timeout 5s nvim --headless -u NONE -i NONE \
         --cmd 'set shada=' \
         --cmd 'set runtimepath+=.' \
         "+lua dofile('tests/init.lua')"
@@ -55,6 +55,14 @@ for test_case in delete_entries delete_during_load save_before_load; do
   mkdir "$history_dir"
   run_nvim "$test_case" global "$history_dir" tests/history_spec.lua
   printf 'ok - history: %s\n' "$test_case"
+done
+
+for test_case in immediate_exit active_watch; do
+  shutdown_dir="$test_root/shutdown-$test_case"
+  mkdir "$shutdown_dir"
+  run_nvim "$test_case" global "$shutdown_dir" tests/shutdown_spec.lua
+  test ! -e "$shutdown_dir/late-watcher"
+  printf 'ok - shutdown: %s\n' "$test_case"
 done
 
 for test_case in root_selection attach_lifecycle reconfigure; do

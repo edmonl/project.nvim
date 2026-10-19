@@ -1,8 +1,6 @@
 local config = require('project_nvim.config')
 local history = require('project_nvim.utils.history')
 local project = require('project_nvim.project')
--- Keep history filesystem watching outside these LSP lifecycle tests.
-history.has_watch_setup = true
 
 local test_case = assert(os.getenv('PROJECT_NVIM_TEST_CASE'))
 local test_root = assert(os.getenv('PROJECT_NVIM_TEST_DIR'))

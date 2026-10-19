@@ -116,6 +116,11 @@ local function read_projects_from_history_sync()
 end
 
 local function setup_watch()
+  -- Pending history reads may finish after VimLeave, during event-loop teardown.
+  if vim.v.exiting ~= vim.NIL then
+    return
+  end
+
   -- Only runs once
   if M.has_watch_setup == false then
     M.has_watch_setup = true
