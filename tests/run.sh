@@ -27,14 +27,14 @@ run_nvim() {
       nvim --headless -u NONE -i NONE \
         --cmd 'set shada=' \
         --cmd 'set runtimepath+=.' \
-        "+lua local ok, err = xpcall(function() dofile(os.getenv('PROJECT_NVIM_TEST_SPEC')) end, debug.traceback); if not ok then print(err); vim.cmd('cquit 1') end" \
-        '+qa!'
+        "+lua dofile('tests/init.lua')"
   )
 }
 
 for scope in global tab win; do
   run_nvim valid_scope "$scope" "$normal_dir"
 done
+
 printf '%s\n' 'ok - changes the working directory for every valid scope'
 
 for scope in tab win; do
@@ -55,4 +55,11 @@ for test_case in delete_entries delete_during_load save_before_load; do
   mkdir "$history_dir"
   run_nvim "$test_case" global "$history_dir" tests/history_spec.lua
   printf 'ok - history: %s\n' "$test_case"
+done
+
+for test_case in root_selection attach_lifecycle reconfigure; do
+  lsp_dir="$test_root/lsp-$test_case"
+  mkdir "$lsp_dir"
+  run_nvim "$test_case" global "$lsp_dir" tests/lsp_spec.lua
+  printf 'ok - LSP: %s\n' "$test_case"
 done

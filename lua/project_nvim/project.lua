@@ -6,24 +6,15 @@ local uv = vim.uv
 local M = {}
 
 -- Internal states
-M.attached_lsp = false
 M.last_project = nil
 
+---Finds a root from a non-ignored LSP client attached to the current buffer.
+---@return string? root
+---@return string? client_name
 function M.find_lsp_root()
-  -- Get lsp client for current buffer
-  -- Returns nil or string
-  local buf_ft = vim.bo.filetype
-  local clients = vim.lsp.buf_get_clients()
-  if next(clients) == nil then
-    return nil
-  end
-
-  for _, client in pairs(clients) do
-    local filetypes = client.config.filetypes
-    if filetypes and vim.tbl_contains(filetypes, buf_ft) then
-      if not vim.tbl_contains(config.options.ignore_lsp, client.name) then
-        return client.config.root_dir, client.name
-      end
+  for _, client in ipairs(vim.lsp.get_clients({ bufnr = 0 })) do
+    if client.root_dir ~= nil and not vim.tbl_contains(config.options.ignore_lsp, client.name) then
+      return client.root_dir, client.name
     end
   end
 
@@ -142,33 +133,6 @@ function M.find_pattern_root()
   end
 end
 
----@diagnostic disable-next-line: unused-local
-local on_attach_lsp = function(client, bufnr)
-  M.on_buf_enter() -- Recalculate root dir after lsp attaches
-end
-
-function M.attach_to_lsp()
-  if M.attached_lsp then
-    return
-  end
-
-  local _start_client = vim.lsp.start_client
-  vim.lsp.start_client = function(lsp_config)
-    if lsp_config.on_attach == nil then
-      lsp_config.on_attach = on_attach_lsp
-    else
-      local _on_attach = lsp_config.on_attach
-      lsp_config.on_attach = function(client, bufnr)
-        on_attach_lsp(client, bufnr)
-        _on_attach(client, bufnr)
-      end
-    end
-    return _start_client(lsp_config)
-  end
-
-  M.attached_lsp = true
-end
-
 function M.set_pwd(dir, method)
   if dir ~= nil then
     local scope_chdir = config.options.scope_chdir
@@ -256,13 +220,27 @@ function M.add_project_manually()
   M.set_pwd(current_dir, 'manual')
 end
 
+---Registers project commands and replaces this plugin's autocommands.
 function M.init()
-  local autocmds = {}
+  local group = vim.api.nvim_create_augroup('project_nvim', { clear = true })
   if not config.options.manual_mode then
-    autocmds[#autocmds + 1] = 'autocmd VimEnter,BufEnter * ++nested lua require("project_nvim.project").on_buf_enter()'
+    vim.api.nvim_create_autocmd({ 'VimEnter', 'BufEnter' }, {
+      group = group,
+      nested = true,
+      callback = M.on_buf_enter,
+    })
 
     if vim.tbl_contains(config.options.detection_methods, 'lsp') then
-      M.attach_to_lsp()
+      vim.api.nvim_create_autocmd('LspAttach', {
+        group = group,
+        nested = true,
+        callback = function(event)
+          -- Background attachments are handled when their buffer is entered.
+          if event.buf == vim.api.nvim_get_current_buf() then
+            M.on_buf_enter()
+          end
+        end,
+      })
     end
   end
 
@@ -271,16 +249,10 @@ function M.init()
     command! AddProject lua require("project_nvim.project").add_project_manually()
   ]])
 
-  autocmds[#autocmds + 1] =
-    'autocmd VimLeavePre * lua require("project_nvim.utils.history").write_projects_to_history()'
-
-  vim.cmd([[augroup project_nvim
-            au!
-  ]])
-  for _, value in ipairs(autocmds) do
-    vim.cmd(value)
-  end
-  vim.cmd('augroup END')
+  vim.api.nvim_create_autocmd('VimLeavePre', {
+    group = group,
+    callback = history.write_projects_to_history,
+  })
 
   history.read_projects_from_history()
 end
