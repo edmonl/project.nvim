@@ -45,7 +45,9 @@ M.defaults = {
 ---@type ProjectOptions
 M.options = {}
 
-M.setup = function(options)
+---Merges default options and compiles directory-exclusion patterns.
+---@param options ProjectOptions?
+function M.setup(options)
   M.options = vim.tbl_deep_extend('force', M.defaults, options or {})
 
   local glob = require('project_nvim.utils.globtopattern')
@@ -56,11 +58,6 @@ M.setup = function(options)
     end
     return glob.globtopattern(pattern)
   end, M.options.exclude_dirs)
-
-  vim.opt.autochdir = false -- implicitly unset autochdir
-
-  require('project_nvim.utils.path').init()
-  require('project_nvim.project').init()
 end
 
 return M

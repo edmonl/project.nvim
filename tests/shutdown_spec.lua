@@ -1,4 +1,5 @@
 local config = require('project_nvim.config')
+local project_nvim = require('project_nvim')
 local history = require('project_nvim.utils.history')
 local path = require('project_nvim.utils.path')
 
@@ -20,7 +21,7 @@ if test_case == 'immediate_exit' then
     return fs_open(file, mode, permissions, callback)
   end
 
-  config.setup({ manual_mode = true, datapath = test_root })
+  project_nvim.setup({ manual_mode = true, datapath = test_root })
   assert(
     vim.wait(2000, function()
       return pending_open ~= nil
@@ -53,7 +54,7 @@ elseif test_case == 'active_watch' then
   assert(vim.fn.mkdir(a) == 1)
   assert(vim.fn.mkdir(b) == 1)
   assert(vim.fn.writefile({ a }, path.historyfile) == 0)
-  config.setup({ manual_mode = true, datapath = test_root })
+  project_nvim.setup({ manual_mode = true, datapath = test_root })
 
   assert(
     vim.wait(2000, function()

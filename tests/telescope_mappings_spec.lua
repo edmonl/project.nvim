@@ -1,4 +1,4 @@
-local config = require('project_nvim.config')
+local project_nvim = require('project_nvim')
 local test_case = assert(os.getenv('PROJECT_NVIM_TEST_CASE'))
 local test_root = assert(os.getenv('PROJECT_NVIM_TEST_DIR'))
 local bindings, select_default, builtin_call
@@ -72,7 +72,7 @@ for name, module in pairs(modules) do
   package.loaded[name] = module
 end
 
-config.setup({ manual_mode = true, datapath = test_root })
+project_nvim.setup({ manual_mode = true, datapath = test_root })
 local extension = require('telescope._extensions.projects')
 local function setup(mappings)
   extension.setup({ mappings = mappings })
@@ -117,7 +117,7 @@ elseif test_case == 'custom_mappings' then
   local dir, changed = bindings.n['<CR>'](prompt_bufnr)
   assert(dir == test_root and changed and builtin_call == nil)
 
-  config.setup({ manual_mode = true, datapath = test_root })
+  project_nvim.setup({ manual_mode = true, datapath = test_root })
   open_picker()
   assert(bindings.n.p ~= nil and bindings.n.f == nil, 'Project setup must preserve Telescope configuration')
 

@@ -1,4 +1,5 @@
 local config = require('project_nvim.config')
+local project_nvim = require('project_nvim')
 local history = require('project_nvim.utils.history')
 local project = require('project_nvim.project')
 
@@ -9,7 +10,7 @@ assert(vim.fn.mkdir(project_dir) == 1)
 assert(vim.fn.mkdir(other_dir) == 1)
 
 local function setup(options)
-  config.setup(vim.tbl_extend('force', {
+  project_nvim.setup(vim.tbl_extend('force', {
     datapath = test_root,
     patterns = {},
   }, options or {}))

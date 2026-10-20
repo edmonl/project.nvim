@@ -31,6 +31,13 @@ run_nvim() {
   )
 }
 
+for test_case in option_preparation initialization_order configuration_only; do
+  setup_dir="$test_root/setup-$test_case"
+  mkdir "$setup_dir"
+  run_nvim "$test_case" global "$setup_dir" tests/setup_spec.lua
+  printf 'ok - setup: %s\n' "$test_case"
+done
+
 for scope in global tab win; do
   run_nvim valid_scope "$scope" "$normal_dir"
 done
