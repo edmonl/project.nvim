@@ -18,32 +18,6 @@ superior project management.
   - Access your recently opened projects from telescope!
   - Asynchronous file io so it will not slow down vim when reading the history
     file on startup.
-- ~~Nvim-tree.lua support/integration~~
-  - Please add the following to your config instead:
-    ```vim
-    " Vim Script
-    lua << EOF
-    require("nvim-tree").setup({
-      sync_root_with_cwd = true,
-      respect_buf_cwd = true,
-      update_focused_file = {
-        enable = true,
-        update_root = true
-      },
-    })
-    EOF
-    ```
-    ```lua
-    -- lua
-    require("nvim-tree").setup({
-      sync_root_with_cwd = true,
-      respect_buf_cwd = true,
-      update_focused_file = {
-        enable = true,
-        update_root = true
-      },
-    })
-    ```
 
 ## 📦 Installation
 
@@ -53,7 +27,7 @@ Install the plugin with your preferred package manager:
 
 ```vim
 " Vim Script
-Plug 'ahmedkhalf/project.nvim'
+Plug 'edmonl/project.nvim'
 
 lua << EOF
   require("project_nvim").setup {
@@ -69,7 +43,7 @@ EOF
 ```lua
 -- Lua
 use {
-  "ahmedkhalf/project.nvim",
+  "edmonl/project.nvim",
   config = function()
     require("project_nvim").setup {
       -- your configuration comes here
