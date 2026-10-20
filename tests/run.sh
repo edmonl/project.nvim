@@ -65,6 +65,13 @@ for test_case in immediate_exit active_watch; do
   printf 'ok - shutdown: %s\n' "$test_case"
 done
 
+for test_case in precedence exclusions relationships; do
+  pattern_dir="$test_root/pattern-$test_case"
+  mkdir "$pattern_dir"
+  run_nvim "$test_case" global "$pattern_dir" tests/pattern_spec.lua
+  printf 'ok - pattern detection: %s\n' "$test_case"
+done
+
 for test_case in root_selection attach_lifecycle reconfigure; do
   lsp_dir="$test_root/lsp-$test_case"
   mkdir "$lsp_dir"
