@@ -1,5 +1,6 @@
 local project_nvim = require('project_nvim')
 local config = require('project_nvim.config')
+local history = require('project_nvim.utils.history')
 local path = require('project_nvim.utils.path')
 local project = require('project_nvim.project')
 
@@ -8,7 +9,7 @@ local test_root = assert(os.getenv('PROJECT_NVIM_TEST_DIR'))
 
 if test_case == 'option_preparation' then
   -- Exercise option preparation without starting history I/O or editor hooks.
-  path.init = function() end
+  history.init = function() end
   project.init = function() end
   local defaults_before = vim.deepcopy(config.defaults)
   local options = {
@@ -45,13 +46,12 @@ if test_case == 'option_preparation' then
   project_nvim.setup({})
   assert(vim.deep_equal(config.options, defaults_before), 'Empty options must reset to defaults')
 elseif test_case == 'configuration_only' then
-  path.init = function()
-    error('Option preparation must not initialize paths')
+  history.init = function()
+    error('Option preparation must not initialize history storage')
   end
   project.init = function()
     error('Option preparation must not initialize project hooks')
   end
-  local paths_before = { path.datapath, path.projectpath, path.historyfile }
   local commands_before = vim.api.nvim_get_commands({})
   local autocmds_before = vim.api.nvim_get_autocmds({})
   vim.opt.autochdir = true
@@ -61,25 +61,20 @@ elseif test_case == 'configuration_only' then
   assert(config.options.datapath == test_root)
   assert(path.is_excluded(vim.fn.expand('~') .. '/project-nvim-excluded/project'))
   assert(vim.o.autochdir, 'Option preparation must not change editor settings')
-  assert(vim.deep_equal({ path.datapath, path.projectpath, path.historyfile }, paths_before))
   assert(vim.deep_equal(vim.api.nvim_get_commands({}), commands_before))
   assert(vim.deep_equal(vim.api.nvim_get_autocmds({}), autocmds_before))
 elseif test_case == 'initialization_order' then
   local phases = {}
   local expected_datapath
 
-  local init_paths = path.init
-  path.init = function()
-    table.insert(phases, 'paths')
-    assert(config.options.datapath == expected_datapath, 'Prepare options before initializing paths')
-    assert(not vim.o.autochdir, 'Disable autochdir before initializing paths')
-    init_paths()
+  history.init = function(datapath)
+    table.insert(phases, 'history')
+    assert(config.options.datapath == expected_datapath, 'Prepare options before initializing history')
+    assert(datapath == expected_datapath, 'Pass the configured storage directory to history')
+    assert(not vim.o.autochdir, 'Disable autochdir before initializing history')
   end
   project.init = function()
     table.insert(phases, 'project')
-    assert(path.datapath == config.options.datapath)
-    assert(path.projectpath == config.options.datapath .. '/project_nvim')
-    assert(path.historyfile == path.projectpath .. '/project_history')
   end
 
   for _, datapath in ipairs({ test_root, test_root .. '/second' }) do
@@ -88,7 +83,7 @@ elseif test_case == 'initialization_order' then
     vim.opt.autochdir = true
     project_nvim.setup({ manual_mode = true, datapath = datapath })
     assert(config.options.datapath == datapath)
-    assert(vim.deep_equal(phases, { 'paths', 'project' }), 'Preserve initialization order')
+    assert(vim.deep_equal(phases, { 'history', 'project' }), 'Initialize history before project hooks')
   end
 else
   error('Unknown test case: ' .. test_case)

@@ -1,20 +1,25 @@
 local config = require('project_nvim.config')
-local path = require('project_nvim.utils.path')
 
 local test_case = assert(os.getenv('PROJECT_NVIM_TEST_CASE'))
 local test_root = assert(os.getenv('PROJECT_NVIM_TEST_DIR'))
+local historyfile = test_root .. '/project_nvim/project_history'
 local a, b, c, d = test_root .. '/a', test_root .. '/b', test_root .. '/c', test_root .. '/d'
 
 config.options = { datapath = test_root, exclude_dirs = {} }
-path.init()
-path.create_scaffolding()
+assert(vim.fn.mkdir(test_root .. '/project_nvim') == 1)
 for _, dir in ipairs({ a, b, c, d }) do
   assert(vim.fn.mkdir(dir) == 1)
 end
 
 local function fresh_history()
   package.loaded['project_nvim.utils.history'] = nil
-  return require('project_nvim.utils.history')
+  local history = require('project_nvim.utils.history')
+  -- Configure storage without starting the load exercised by each case.
+  local read_history = history.read_projects_from_history
+  history.read_projects_from_history = function() end
+  history.init(test_root)
+  history.read_projects_from_history = read_history
+  return history
 end
 
 local function assert_projects(actual, expected)
@@ -22,7 +27,7 @@ local function assert_projects(actual, expected)
 end
 
 local function write_history()
-  assert(vim.fn.writefile({ a, b, c }, path.historyfile) == 0)
+  assert(vim.fn.writefile({ a, b, c }, historyfile) == 0)
 end
 
 if test_case == 'delete_entries' then
@@ -79,7 +84,7 @@ elseif test_case == 'load_filtering' then
   local lines = vim.tbl_map(function(project)
     return project .. '\r'
   end, { a, b, c, a, missing, d, alias, '' })
-  assert(vim.fn.writefile(lines, path.historyfile) == 0)
+  assert(vim.fn.writefile(lines, historyfile) == 0)
   history.delete_project(c)
 
   history.read_projects_from_history()
@@ -121,9 +126,9 @@ elseif test_case == 'serialization' then
     -- Characterize the current inclusive slice: over 100 entries retains 101.
     local first = count > 100 and count - 100 or 1
     local expected = vim.list_slice(projects, first, count)
-    assert_projects(vim.fn.readfile(path.historyfile), expected)
+    assert_projects(vim.fn.readfile(historyfile), expected)
     local expected_data = #expected > 0 and table.concat(expected, '\n') .. '\n' or ''
-    assert(table.concat(vim.fn.readfile(path.historyfile, 'b'), '\n') == expected_data)
+    assert(table.concat(vim.fn.readfile(historyfile, 'b'), '\n') == expected_data)
   end
 
   -- Without loaded history or deletion markers, saving appends session visits.
@@ -131,7 +136,7 @@ elseif test_case == 'serialization' then
   write_history()
   history.session_projects = { a, d }
   history.write_projects_to_history()
-  assert_projects(vim.fn.readfile(path.historyfile), { a, b, c, a, d })
+  assert_projects(vim.fn.readfile(historyfile), { a, b, c, a, d })
 elseif test_case == 'save_before_load' then
   local history = fresh_history()
   write_history()
@@ -141,7 +146,7 @@ elseif test_case == 'save_before_load' then
   history.delete_project(b)
   history.write_projects_to_history()
 
-  assert_projects(vim.fn.readfile(path.historyfile), { a, c, d })
+  assert_projects(vim.fn.readfile(historyfile), { a, c, d })
 
   local reloaded = fresh_history()
   reloaded.read_projects_from_history()

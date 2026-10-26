@@ -114,7 +114,7 @@ function M.add_project_manually()
   M.set_pwd(current_dir, 'manual')
 end
 
----Registers project commands and replaces this plugin's autocommands.
+---Registers project commands and replaces project-detection autocommands.
 function M.init()
   local group = vim.api.nvim_create_augroup('project_nvim', { clear = true })
   if not config.options.manual_mode then
@@ -142,13 +142,6 @@ function M.init()
     command! ProjectRoot lua require("project_nvim.project").on_buf_enter()
     command! AddProject lua require("project_nvim.project").add_project_manually()
   ]])
-
-  vim.api.nvim_create_autocmd('VimLeavePre', {
-    group = group,
-    callback = history.write_projects_to_history,
-  })
-
-  history.read_projects_from_history()
 end
 
 return M

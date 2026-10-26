@@ -64,11 +64,19 @@ for test_case in delete_entries delete_during_load save_before_load load_filteri
   printf 'ok - history: %s\n' "$test_case"
 done
 
+for test_case in reconfigure repeat_setup stale_mkdir stale_open stale_read; do
+  lifecycle_dir="$test_root/history-lifecycle-$test_case"
+  mkdir "$lifecycle_dir"
+  run_nvim "$test_case" global "$lifecycle_dir" tests/history_lifecycle_spec.lua
+  printf 'ok - history lifecycle: %s\n' "$test_case"
+done
+
 for test_case in immediate_exit active_watch; do
   shutdown_dir="$test_root/shutdown-$test_case"
   mkdir "$shutdown_dir"
   run_nvim "$test_case" global "$shutdown_dir" tests/shutdown_spec.lua
   test ! -e "$shutdown_dir/late-watcher"
+  test "$(cat -- "$shutdown_dir/project_nvim/project_history")" = "$shutdown_dir"
   printf 'ok - shutdown: %s\n' "$test_case"
 done
 

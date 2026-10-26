@@ -5,17 +5,21 @@ local M = {}
 
 M.recent_projects = nil -- projects from previous neovim sessions
 M.session_projects = {} -- projects from current neovim session
-M.has_watch_setup = false
 local deleted_projects = {}
+local projectpath = vim.fn.stdpath('data') .. '/project_nvim'
+local watcher
+-- Setup invalidates pending reads even when the same storage path is selected again.
+local generation = 0
 
-local function open_history(mode, callback)
+local function open_history(directory, mode, callback)
+  local historyfile = directory .. '/project_history'
   if callback ~= nil then -- async
-    path.create_scaffolding(function(_, _)
-      uv.fs_open(path.historyfile, mode, 438, callback)
+    uv.fs_mkdir(directory, 448, function()
+      uv.fs_open(historyfile, mode, 438, callback)
     end)
   else -- sync
-    path.create_scaffolding()
-    return uv.fs_open(path.historyfile, mode, 438)
+    uv.fs_mkdir(directory, 448)
+    return uv.fs_open(historyfile, mode, 438)
   end
 end
 
@@ -54,7 +58,7 @@ function M.delete_project(project)
 end
 
 local function read_projects_from_history_sync()
-  local file = open_history('r')
+  local file = open_history(projectpath, 'r')
   if file == nil then
     M.recent_projects = {}
     return
@@ -66,43 +70,63 @@ local function read_projects_from_history_sync()
   M.recent_projects = history_data.parse(contents, include_loaded_project)
 end
 
+local function stop_watch()
+  if watcher ~= nil then
+    watcher:stop()
+    watcher:close()
+    watcher = nil
+  end
+end
+
 local function setup_watch()
   -- Pending history reads may finish after VimLeave, during event-loop teardown.
-  if vim.v.exiting ~= vim.NIL then
+  if watcher ~= nil or vim.v.exiting ~= vim.NIL then
     return
   end
 
-  -- Only runs once
-  if M.has_watch_setup == false then
-    M.has_watch_setup = true
-    local event = uv.new_fs_event()
-    if event == nil then
+  local event = uv.new_fs_event()
+  if event == nil then
+    return
+  end
+  watcher = event
+  local started = event:start(projectpath, {}, function(err, _, events)
+    -- Events already queued by a replaced watcher must not reload the new history.
+    if err ~= nil or event ~= watcher then
       return
     end
-    event:start(path.projectpath, {}, function(err, _, events)
-      if err ~= nil then
-        return
-      end
-      if events['change'] then
-        M.recent_projects = nil
-        M.read_projects_from_history()
-      end
-    end)
+    if events['change'] then
+      M.recent_projects = nil
+      M.read_projects_from_history()
+    end
+  end)
+  if not started then
+    stop_watch()
   end
 end
 
 ---Loads disk history asynchronously and starts watching while Neovim is active.
 function M.read_projects_from_history()
-  open_history('r', function(_, fd)
+  local load_generation = generation
+  open_history(projectpath, 'r', function(_, fd)
+    if load_generation ~= generation then
+      if fd ~= nil then
+        uv.fs_close(fd, function() end)
+      end
+      return
+    end
     setup_watch()
     if fd ~= nil then
       uv.fs_fstat(fd, function(_, stat)
-        if stat ~= nil then
-          uv.fs_read(fd, stat.size, -1, function(_, data)
-            uv.fs_close(fd, function(_, _) end)
-            M.recent_projects = history_data.parse(data, include_loaded_project)
-          end)
+        if stat == nil or load_generation ~= generation then
+          uv.fs_close(fd, function() end)
+          return
         end
+        uv.fs_read(fd, stat.size, -1, function(_, data)
+          uv.fs_close(fd, function() end)
+          if load_generation == generation and data ~= nil then
+            M.recent_projects = history_data.parse(data, include_loaded_project)
+          end
+        end)
       end)
     end
   end)
@@ -126,13 +150,37 @@ function M.write_projects_to_history()
       read_projects_from_history_sync()
     end
   end
-  local file = open_history(mode)
+  local file = open_history(projectpath, mode)
 
   if file ~= nil then
     local contents = history_data.serialize(M.get_recent_projects())
     uv.fs_write(file, contents, -1)
     uv.fs_close(file)
   end
+end
+
+---Configures history storage, loads it, and owns its watcher and shutdown hook.
+---@param datapath string
+function M.init(datapath)
+  local directory = datapath .. '/project_nvim'
+  generation = generation + 1
+  if directory ~= projectpath then
+    stop_watch()
+    M.recent_projects = nil
+  end
+  projectpath = directory
+
+  local group = vim.api.nvim_create_augroup('project_nvim_history', { clear = true })
+  vim.api.nvim_create_autocmd('VimLeavePre', {
+    group = group,
+    callback = function()
+      generation = generation + 1
+      stop_watch()
+      M.write_projects_to_history()
+    end,
+  })
+
+  M.read_projects_from_history()
 end
 
 return M

@@ -2,14 +2,14 @@ local config = require('project_nvim.config')
 local history = require('project_nvim.utils.history')
 local M = {}
 
----Configures the plugin, initializes history paths, and registers project hooks.
+---Configures the plugin, initializes history storage, and registers project hooks.
 ---@param options ProjectOptions?
 function M.setup(options)
   config.setup(options)
 
   vim.opt.autochdir = false -- implicitly unset autochdir
 
-  require('project_nvim.utils.path').init()
+  history.init(config.options.datapath)
   require('project_nvim.project').init()
 end
 
